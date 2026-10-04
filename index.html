@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reserva de Carritos TIC - Instituto</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 6px;
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <div>
+        <!-- Top Navbar -->
+        <header class="bg-indigo-700 text-white shadow-md">
+            <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="p-2.5 bg-indigo-800 rounded-xl">
+                        <i class="fa-solid fa-laptop-code text-2xl text-indigo-200"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-bold leading-tight">Gestión de Carritos y Tablets TIC</h1>
+                        <p class="text-xs sm:text-sm text-indigo-200">Cuadrante Semanal de Reservas del Instituto</p>
+                    </div>
+                </div>
+
+                <!-- Admin Mode Toggle Button -->
+                <button id="adminToggleBtn" onclick="openAdminModal()" class="flex items-center gap-2 px-4 py-2 bg-indigo-800 hover:bg-indigo-900 text-indigo-100 rounded-lg text-sm font-medium transition shadow-sm border border-indigo-600/50">
+                    <i class="fa-solid fa-user-shield" id="adminIcon"></i>
+                    <span id="adminBtnText">Modo Coordinador TIC</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Wrapper -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+            <!-- Notice / Instructions Banner -->
+            <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl shadow-sm mb-6">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 mt-0.5">
+                        <i class="fa-solid fa-circle-info text-amber-600 text-lg"></i>
+                    </div>
+                    <div class="ml-3 text-sm text-amber-800">
+                        <h3 class="font-semibold text-amber-900 text-base mb-1">Instrucciones para el Profesorado</h3>
+                        <ul class="list-disc list-inside space-y-1 text-xs sm:text-sm">
+                            <li>Para realizar una reserva, pulsa en la casilla vacía de la fecha y hora deseada.</li>
+                            <li>En la reserva debes indicar tus <strong>Iniciales</strong> y el nombre o iniciales de la <strong>Asignatura</strong>.</li>
+                            <li>Introduce un <strong>PIN de 4 dígitos</strong> que deberás recordar en caso de que necesites cancelar o modificar tu reserva más adelante.</li>
+                            <li>La franja de <strong>11:10 a 11:40 (Recreo)</strong> se encuentra inhabilitada para el uso de carritos.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls Container: Week Selector & Resource Tabs -->
+            <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200 mb-6 space-y-4">
+                
+                <!-- Week Selector Bar -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-regular fa-calendar-days text-indigo-600 text-xl"></i>
+                        <span class="font-semibold text-slate-700">Semana Seleccionada:</span>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button onclick="changeWeek(-1)" class="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition" title="Semana anterior">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <input type="week" id="weekPicker" onchange="onWeekInputChange(this.value)" class="bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2 font-medium">
+                        <button onclick="changeWeek(1)" class="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition" title="Semana siguiente">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                        <button onclick="setCurrentWeek()" class="ml-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition">
+                            Esta semana
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Resource Tabs (Equipment list from PDF) -->
+                <div>
+                    <span class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Seleccionar Carrito / Ubicación:</span>
+                    <div id="resourceTabs" class="flex flex-wrap gap-2">
+                        <!-- Dynamic Tabs inserted by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Schedule Table Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <!-- Resource Information Bar -->
+                <div class="bg-slate-50 px-6 py-3 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div class="flex items-center gap-2">
+                        <span id="currentResourceBadge" class="bg-indigo-100 text-indigo-800 text-xs font-bold px-2.5 py-1 rounded-md uppercase">CB01</span>
+                        <h2 id="currentResourceTitle" class="text-base font-bold text-slate-800">CB01 (15 portátiles)</h2>
+                    </div>
+                    <span id="currentResourceLocation" class="text-xs text-slate-500 font-medium flex items-center gap-1">
+                        <i class="fa-solid fa-location-dot text-slate-400"></i> Ubicación: Sala de Profesores
+                    </span>
+                </div>
+
+                <!-- Timetable Grid -->
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-sm text-left text-slate-500 min-w-[700px]">
+                        <thead class="text-xs text-slate-700 uppercase bg-slate-100 border-b border-slate-200">
+                            <tr>
+                                <th scope="col" class="px-4 py-3 text-center w-28 border-r border-slate-200">Horario</th>
+                                <th scope="col" class="px-4 py-3 text-center border-r border-slate-200">Lunes <span id="date-mon" class="block text-[10px] text-slate-400 font-normal"></span></th>
+                                <th scope="col" class="px-4 py-3 text-center border-r border-slate-200">Martes <span id="date-tue" class="block text-[10px] text-slate-400 font-normal"></span></th>
+                                <th scope="col" class="px-4 py-3 text-center border-r border-slate-200">Miércoles <span id="date-wed" class="block text-[10px] text-slate-400 font-normal"></span></th>
+                                <th scope="col" class="px-4 py-3 text-center border-r border-slate-200">Jueves <span id="date-thu" class="block text-[10px] text-slate-400 font-normal"></span></th>
+                                <th scope="col" class="px-4 py-3 text-center">Viernes <span id="date-fri" class="block text-[10px] text-slate-400 font-normal"></span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="scheduleBody" class="divide-y divide-slate-200">
+                            <!-- Dynamic Schedule Rows inserted by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-8">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
+            Coordinación TIC &copy; Instituto de Educación Secundaria | Plataforma Digital de Reservas
+        </div>
+    </footer>
+
+    <!-- Booking / Edit Modal -->
+    <div id="bookingModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden transform transition-all">
+            <div class="bg-indigo-700 px-6 py-4 text-white flex justify-between items-center">
+                <h3 class="font-bold text-lg flex items-center gap-2">
+                    <i class="fa-regular fa-calendar-check"></i>
+                    <span id="modalTitle">Reservar Carrito</span>
+                </h3>
+                <button onclick="closeModal('bookingModal')" class="text-indigo-200 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            
+            <form id="bookingForm" onsubmit="handleBookingSubmit(event)" class="p-6 space-y-4">
+                <input type="hidden" id="slotDay">
+                <input type="hidden" id="slotTime">
+
+                <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs text-slate-600 space-y-1">
+                    <div><strong>Equipo:</strong> <span id="modalResource">CB01</span></div>
+                    <div><strong>Día y Hora:</strong> <span id="modalDateTime">Lunes (8:25 - 9:20)</span></div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Iniciales del Profesor *</label>
+                    <input type="text" id="teacherInitials" required maxlength="10" placeholder="Ej. J.M.G." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 uppercase">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Nombre / Iniciales Asignatura *</label>
+                    <input type="text" id="subjectName" required maxlength="25" placeholder="Ej. MAT 3ºESO" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 uppercase">
+                </div>
+
+                <div id="pinContainer">
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">PIN de Seguridad (4 dígitos) *</label>
+                    <input type="password" id="userPin" required pattern="[0-9]{4}" maxlength="4" placeholder="1234" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center tracking-widest font-mono">
+                    <p class="text-[11px] text-slate-500 mt-1">Este PIN te servirá para cancelar tu reserva posteriormente.</p>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('bookingModal')" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg font-medium">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium shadow-sm transition">Guardar Reserva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Action / Delete Modal (Cancel booking with PIN) -->
+    <div id="actionModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
+            <div class="bg-slate-800 px-6 py-4 text-white flex justify-between items-center">
+                <h3 class="font-bold text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-user-pen"></i>
+                    Gestionar Reserva
+                </h3>
+                <button onclick="closeModal('actionModal')" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-4">
+                <div class="bg-indigo-50 border border-indigo-100 p-3 rounded-lg text-xs text-indigo-900 space-y-1">
+                    <div><strong>Profesor:</strong> <span id="actionTeacher">--</span></div>
+                    <div><strong>Asignatura:</strong> <span id="actionSubject">--</span></div>
+                    <div><strong>Franja:</strong> <span id="actionSlot">--</span></div>
+                </div>
+
+                <div id="pinVerificationSection">
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Introduce el PIN de 4 dígitos:</label>
+                    <input type="password" id="verifyPin" pattern="[0-9]{4}" maxlength="4" placeholder="****" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center tracking-widest font-mono">
+                    <p id="pinError" class="text-xs text-rose-600 mt-1 hidden font-semibold"><i class="fa-solid fa-circle-exclamation"></i> PIN incorrecto.</p>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('actionModal')" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg font-medium">Cerrar</button>
+                    <button type="button" onclick="deleteBookingWithPin()" class="px-4 py-2 text-sm bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-medium shadow-sm transition">Eliminar Reserva</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Login Modal -->
+    <div id="adminModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-xl max-w-sm w-full overflow-hidden">
+            <div class="bg-indigo-900 px-6 py-4 text-white flex justify-between items-center">
+                <h3 class="font-bold text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-lock"></i>
+                    Modo Coordinador TIC
+                </h3>
+                <button onclick="closeModal('adminModal')" class="text-indigo-300 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <form onsubmit="handleAdminAuth(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Contraseña Maestra TIC</label>
+                    <input type="password" id="adminPassword" required placeholder="Introduce la contraseña" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <p class="text-[11px] text-slate-400 mt-1">Clave por defecto: <code class="bg-slate-100 px-1 rounded">admin123</code></p>
+                </div>
+
+                <p id="adminError" class="text-xs text-rose-600 hidden font-semibold"><i class="fa-solid fa-circle-exclamation"></i> Contraseña incorrecta.</p>
+
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeModal('adminModal')" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg font-medium">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 text-sm bg-indigo-700 hover:bg-indigo-800 text-white rounded-lg font-medium shadow-sm transition">Acceder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <span id="toastMessage" class="text-sm font-medium">Acción completada con éxito</span>
+    </div>
+
+    <script>
+        // Resource Configuration extracted from PDF
+        const RESOURCES = [
+            { id: 'CB01', name: 'CB01 (15 portátiles)', location: 'Sala de Profesores' },
+            { id: 'CB02_SALA', name: 'CB02 (15 portátiles)', location: 'Sala de Profesores' },
+            { id: 'TABLETS', name: 'Tablets', location: 'Jefatura' },
+            { id: 'CNG', name: 'CNG', location: 'Biblioteca' },
+            { id: 'CB02_LAB', name: 'CB02', location: 'Lab. Idiomas' }
+        ];
+
+        // Schedule Time Slots from PDF
+        const TIME_SLOTS = [
+            { id: '8:25-9:20', label: '8:25 - 9:20', isBreak: false },
+            { id: '9:20-10:15', label: '9:20 - 10:15', isBreak: false },
+            { id: '10:15-11:10', label: '10:15 - 11:10', isBreak: false },
+            { id: '11:10-11:40', label: '11:10 - 11:40', isBreak: true }, // Recreo
+            { id: '11:40-12:35', label: '11:40 - 12:35', isBreak: false },
+            { id: '12:35-13:30', label: '12:35 - 13:30', isBreak: false },
+            { id: '13:30-14:25', label: '13:30 - 14:25', isBreak: false },
+            { id: '14:25-15:15', label: '14:25 - 15:15', isBreak: false }
+        ];
+
+        const DAYS = [
+            { id: 'mon', label: 'Lunes' },
+            { id: 'tue', label: 'Martes' },
+            { id: 'wed', label: 'Miércoles' },
+            { id: 'thu', label: 'Jueves' },
+            { id: 'fri', label: 'Viernes' }
+        ];
+
+        // App State
+        let currentResourceId = 'CB01';
+        let currentWeekStr = '';
+        let isAdminMode = false;
+        let selectedBookingTarget = null; // Stores target info for modal action
+
+        // LocalStorage Key
+        const STORAGE_KEY = 'tic_cart_bookings_v1';
+
+        // Initialize App
+        window.onload = function() {
+            setCurrentWeek();
+            renderResourceTabs();
+            renderSchedule();
+        };
+
+        // Week Date Utilities
+        function getISOWeekString(date) {
+            const tempDate = new Date(date.getTime());
+            tempDate.setHours(0, 0, 0, 0);
+            tempDate.setDate(tempDate.getDate() + 3 - (tempDate.getDay() + 6) % 7);
+            const week1 = new Date(tempDate.getFullYear(), 0, 4);
+            const weekNum = 1 + Math.round(((tempDate.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+            const year = tempDate.getFullYear();
+            return `${year}-W${weekNum < 10 ? '0' : ''}${weekNum}`;
+        }
+
+        function setCurrentWeek() {
+            const today = new Date();
+            currentWeekStr = getISOWeekString(today);
+            document.getElementById('weekPicker').value = currentWeekStr;
+            updateHeaderDates();
+            renderSchedule();
+        }
+
+        function changeWeek(offset) {
+            const [year, week] = currentWeekStr.split('-W').map(Number);
+            const date = getDateOfISOWeek(week, year);
+            date.setDate(date.getDate() + (offset * 7));
+            currentWeekStr = getISOWeekString(date);
+            document.getElementById('weekPicker').value = currentWeekStr;
+            updateHeaderDates();
+            renderSchedule();
+        }
+
+        function onWeekInputChange(value) {
+            if (!value) return;
+            currentWeekStr = value;
+            updateHeaderDates();
+            renderSchedule();
+        }
+
+        function getDateOfISOWeek(w, y) {
+            const simple = new Date(y, 0, 1 + (w - 1) * 7);
+            const dow = simple.getDay();
+            const ISOweekStart = simple;
+            if (dow <= 4)
+                ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
+            else
+                ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
+            return ISOweekStart;
+        }
+
+        function updateHeaderDates() {
+            if (!currentWeekStr) return;
+            const [year, week] = currentWeekStr.split('-W').map(Number);
+            const monday = getDateOfISOWeek(week, year);
+
+            DAYS.forEach((day, index) => {
+                const dayDate = new Date(monday);
+                dayDate.setDate(monday.getDate() + index);
+                const formatted = `${dayDate.getDate()}/${dayDate.getMonth() + 1}`;
+                const el = document.getElementById(`date-${day.id}`);
+                if (el) el.textContent = formatted;
+            });
+        }
+
+        // Render Equipment Selector Tabs
+        function renderResourceTabs() {
+            const container = document.getElementById('resourceTabs');
+            container.innerHTML = '';
+
+            RESOURCES.forEach(res => {
+                const isActive = res.id === currentResourceId;
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.onclick = () => selectResource(res.id);
+                button.className = `px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition ${
+                    isActive 
+                    ? 'bg-indigo-600 text-white shadow-sm' 
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`;
+
+                button.innerHTML = `
+                    <i class="fa-solid ${res.id.includes('TABLET') ? 'fa-tablet-screen-button' : 'fa-laptop'}"></i>
+                    <span>${res.name}</span>
+                `;
+                container.appendChild(button);
+            });
+        }
+
+        function selectResource(id) {
+            currentResourceId = id;
+            const res = RESOURCES.find(r => r.id === id);
+            document.getElementById('currentResourceBadge').textContent = res.id.replace('_SALA', '').replace('_LAB', ' (Lab)');
+            document.getElementById('currentResourceTitle').textContent = res.name;
+            document.getElementById('currentResourceLocation').innerHTML = `<i class="fa-solid fa-location-dot text-slate-400"></i> Ubicación: ${res.location}`;
+            renderResourceTabs();
+            renderSchedule();
+        }
+
+        // Data Storage Operations
+        function getBookings() {
+            try {
+                return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function saveBookings(data) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+
+        // Render Schedule Table
+        function renderSchedule() {
+            const tbody = document.getElementById('scheduleBody');
+            tbody.innerHTML = '';
+            const bookings = getBookings();
+
+            TIME_SLOTS.forEach(slot => {
+                const row = document.createElement('tr');
+                
+                // Time Slot Header Cell
+                const timeCell = document.createElement('td');
+                timeCell.className = "px-3 py-3 text-center text-xs font-semibold text-slate-600 bg-slate-50/80 border-r border-slate-200 whitespace-nowrap";
+                timeCell.textContent = slot.label;
+                row.appendChild(timeCell);
+
+                // Recreo (Break) Row behavior
+                if (slot.isBreak) {
+                    const breakCell = document.createElement('td');
+                    breakCell.colSpan = 5;
+                    breakCell.className = "px-4 py-2 text-center bg-amber-100/60 text-amber-800 text-xs font-semibold tracking-wider uppercase border-y border-amber-200/50";
+                    breakCell.innerHTML = `<i class="fa-solid fa-mug-hot mr-1.5"></i> RECREO / NO DISPONIBLE`;
+                    row.appendChild(breakCell);
+                    tbody.appendChild(row);
+                    return;
+                }
+
+                // Days Columns
+                DAYS.forEach(day => {
+                    const cell = document.createElement('td');
+                    cell.className = "px-2 py-2 text-center border-r border-slate-200 hover:bg-slate-50/80 transition relative";
+
+                    const key = `${currentWeekStr}_${currentResourceId}_${day.id}_${slot.id}`;
+                    const booking = bookings[key];
+
+                    if (booking) {
+                        // Occupied Slot
+                        cell.innerHTML = `
+                            <div class="p-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-900 shadow-sm flex flex-col items-center justify-center cursor-pointer hover:bg-indigo-100/80 transition group" onclick="openActionModal('${key}')">
+                                <span class="font-bold text-xs uppercase leading-tight">${escapeHtml(booking.initials)}</span>
+                                <span class="text-[11px] text-indigo-700 font-medium truncate max-w-[100px]">${escapeHtml(booking.subject)}</span>
+                                <span class="text-[9px] text-indigo-500 mt-0.5 group-hover:underline">
+                                    ${isAdminMode ? '<i class="fa-solid fa-trash text-rose-500"></i> Borrar' : '<i class="fa-solid fa-lock text-[8px]"></i> Reservado'}
+                                </span>
+                            </div>
+                        `;
+                    } else {
+                        // Free Slot
+                        cell.innerHTML = `
+                            <button onclick="openBookingModal('${day.id}', '${slot.id}')" class="w-full py-3 rounded-lg border border-dashed border-slate-300 text-slate-400 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/50 transition text-xs font-medium flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-plus text-[10px]"></i> Reservar
+                            </button>
+                        `;
+                    }
+
+                    row.appendChild(cell);
+                });
+
+                tbody.appendChild(row);
+            });
+        }
+
+        // Modal Handlers
+        function openBookingModal(dayId, slotId) {
+            const dayObj = DAYS.find(d => d.id === dayId);
+            const slotObj = TIME_SLOTS.find(s => s.id === slotId);
+            const resObj = RESOURCES.find(r => r.id === currentResourceId);
+
+            document.getElementById('slotDay').value = dayId;
+            document.getElementById('slotTime').value = slotId;
+            document.getElementById('modalResource').textContent = resObj.name;
+            document.getElementById('modalDateTime').textContent = `${dayObj.label} (${slotObj.label})`;
+            
+            document.getElementById('teacherInitials').value = '';
+            document.getElementById('subjectName').value = '';
+            document.getElementById('userPin').value = '';
+
+            // If Admin mode, PIN is optional/auto-filled
+            const pinContainer = document.getElementById('pinContainer');
+            if (isAdminMode) {
+                document.getElementById('userPin').required = false;
+                document.getElementById('userPin').value = '0000';
+                pinContainer.classList.add('hidden');
+            } else {
+                document.getElementById('userPin').required = true;
+                pinContainer.classList.remove('hidden');
+            }
+
+            document.getElementById('bookingModal').classList.remove('hidden');
+            document.getElementById('bookingModal').classList.add('flex');
+        }
+
+        function handleBookingSubmit(e) {
+            e.preventDefault();
+
+            const dayId = document.getElementById('slotDay').value;
+            const slotId = document.getElementById('slotTime').value;
+            const initials = document.getElementById('teacherInitials').value.trim();
+            const subject = document.getElementById('subjectName').value.trim();
+            const pin = document.getElementById('userPin').value.trim();
+
+            if (!initials || !subject || (!isAdminMode && (!pin || pin.length !== 4))) {
+                showToast('Por favor, rellena todos los campos correctamente.', true);
+                return;
+            }
+
+            const key = `${currentWeekStr}_${currentResourceId}_${dayId}_${slotId}`;
+            const bookings = getBookings();
+
+            bookings[key] = {
+                initials: initials.toUpperCase(),
+                subject: subject.toUpperCase(),
+                pin: pin || '0000',
+                createdAt: new Date().toISOString()
+            };
+
+            saveBookings(bookings);
+            closeModal('bookingModal');
+            renderSchedule();
+            showToast('Reserva realizada correctamente.');
+        }
+
+        function openActionModal(key) {
+            const bookings = getBookings();
+            const booking = bookings[key];
+            if (!booking) return;
+
+            selectedBookingTarget = key;
+
+            if (isAdminMode) {
+                // Admin can delete immediately without PIN prompt
+                if (confirm('¿Deseas eliminar esta reserva como Coordinador TIC?')) {
+                    delete keyFromBookings(key);
+                    showToast('Reserva eliminada por el Coordinador TIC.');
+                }
+                return;
+            }
+
+            // Regular teacher mode: require PIN
+            const [, , dayId, slotId] = key.split('_');
+            const dayObj = DAYS.find(d => d.id === dayId);
+            const slotObj = TIME_SLOTS.find(s => s.id === slotId);
+
+            document.getElementById('actionTeacher').textContent = booking.initials;
+            document.getElementById('actionSubject').textContent = booking.subject;
+            document.getElementById('actionSlot').textContent = `${dayObj ? dayObj.label : ''} (${slotObj ? slotObj.label : ''})`;
+            document.getElementById('verifyPin').value = '';
+            document.getElementById('pinError').classList.add('hidden');
+
+            document.getElementById('actionModal').classList.remove('hidden');
+            document.getElementById('actionModal').classList.add('flex');
+        }
+
+        function deleteBookingWithPin() {
+            if (!selectedBookingTarget) return;
+
+            const inputPin = document.getElementById('verifyPin').value.trim();
+            const bookings = getBookings();
+            const booking = bookings[selectedBookingTarget];
+
+            if (booking && booking.pin === inputPin) {
+                delete keyFromBookings(selectedBookingTarget);
+                closeModal('actionModal');
+                showToast('Reserva cancelada correctamente.');
+            } else {
+                document.getElementById('pinError').classList.remove('hidden');
+            }
+        }
+
+        function deleteKeyFromBookings(key) {
+            const bookings = getBookings();
+            delete bookings[key];
+            saveBookings(bookings);
+            renderSchedule();
+        }
+
+        // Admin Auth Handlers
+        function openAdminModal() {
+            if (isAdminMode) {
+                // Exit admin mode
+                isAdminMode = false;
+                updateAdminUI();
+                showToast('Modo Coordinador desactivado.');
+            } else {
+                document.getElementById('adminPassword').value = '';
+                document.getElementById('adminError').classList.add('hidden');
+                document.getElementById('adminModal').classList.remove('hidden');
+                document.getElementById('adminModal').classList.add('flex');
+            }
+        }
+
+        function handleAdminAuth(e) {
+            e.preventDefault();
+            const pass = document.getElementById('adminPassword').value;
+
+            // Default admin password
+            if (pass === 'admin123') {
+                isAdminMode = true;
+                updateAdminUI();
+                closeModal('adminModal');
+                showToast('Modo Coordinador TIC activado');
+            } else {
+                document.getElementById('adminError').classList.remove('hidden');
+            }
+        }
+
+        function updateAdminUI() {
+            const btn = document.getElementById('adminToggleBtn');
+            const btnText = document.getElementById('adminBtnText');
+            const icon = document.getElementById('adminIcon');
+
+            if (isAdminMode) {
+                btn.className = "flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition shadow-sm border border-emerald-500";
+                btnText.textContent = "Modo Coordinador (Activo)";
+                icon.className = "fa-solid fa-user-check";
+            } else {
+                btn.className = "flex items-center gap-2 px-4 py-2 bg-indigo-800 hover:bg-indigo-900 text-indigo-100 rounded-lg text-sm font-medium transition shadow-sm border border-indigo-600/50";
+                btnText.textContent = "Modo Coordinador TIC";
+                icon.className = "fa-solid fa-user-shield";
+            }
+            renderSchedule();
+        }
+
+        // Helpers
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.textContent = message;
+            if (isError) {
+                toastIcon.className = "fa-solid fa-circle-xmark text-rose-400 text-lg";
+            } else {
+                toastIcon.className = "fa-solid fa-circle-check text-emerald-400 text-lg";
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>"']/g, function(m) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                }[m];
+            });
+        }
+    </script>
+</body>
+</html>
